@@ -4,80 +4,59 @@ import 'add_contact_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  _HomeScreenState createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
   final DatabaseHelper db = DatabaseHelper();
-  List<Map<String, dynamic>> users = [];
-  List<Map<String, dynamic>> filteredUsers = [];
-  TextEditingController searchCtrl = TextEditingController();
+  List<Map<String, dynamic>> contacts = [];
 
   @override
   void initState() {
     super.initState();
-    _loadUsers();
-    searchCtrl.addListener(_search);
+    loadContacts();
   }
 
-  void _loadUsers() async {
-    users = await db.getUsers();
+  Future<void> loadContacts() async {
+    var data = await db.getContacts();
     setState(() {
-      filteredUsers = users;
+      contacts = data;
     });
   }
 
-  void _search() {
-    final query = searchCtrl.text.toLowerCase();
-    setState(() {
-      filteredUsers = users
-          .where((u) =>
-              u['name'].toLowerCase().contains(query) ||
-              u['email'].toLowerCase().contains(query))
-          .toList();
-    });
-  }
-
-  void _deleteUser(int id) async {
-    final database = await db.db;
-    await database.delete('users', where: 'id = ?', whereArgs: [id]);
-    _loadUsers();
+  Future<void> deleteContact(int id) async {
+    await db.deleteContact(id);
+    loadContacts();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Contact supprimé")),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Liste des utilisateurs")),
-      body: Padding(
-        padding: EdgeInsets.all(10),
-        child: Column(
-          children: [
-            TextField(
-              controller: searchCtrl,
-              decoration: InputDecoration(
-                  labelText: "Rechercher", suffixIcon: Icon(Icons.search)),
-            ),
-            Expanded(
-              child: filteredUsers.isEmpty
-                  ? Center(child: Text("Aucun utilisateur trouvé"))
-                  : ListView.builder(
-                      itemCount: filteredUsers.length,
-                      itemBuilder: (context, index) {
-                        final user = filteredUsers[index];
-                        return ListTile(
-                          title: Text(user['name']),
-                          subtitle: Text(user['email']),
-                          trailing: IconButton(
-                            icon: Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _deleteUser(user['id']),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
+      appBar: AppBar(
+        title: Text("Mes contacts"),
       ),
+      body: contacts.isEmpty
+          ? Center(child: Text("Aucun contact pour le moment"))
+          : ListView.builder(
+              itemCount: contacts.length,
+              itemBuilder: (context, index) {
+                final contact = contacts[index];
+                return Card(
+                  margin: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                  child: ListTile(
+                    title: Text(contact['name']),
+                    subtitle: Text('${contact['phone']} | ${contact['email']}'),
+                    trailing: IconButton(
+                      icon: Icon(Icons.delete, color: Colors.red),
+                      onPressed: () => deleteContact(contact['id']),
+                    ),
+                  ),
+                );
+              },
+            ),
       floatingActionButton: FloatingActionButton(
         child: Icon(Icons.add),
         onPressed: () async {
@@ -85,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
             context,
             MaterialPageRoute(builder: (_) => AddContactScreen()),
           );
-          _loadUsers();
+          loadContacts();
         },
       ),
     );

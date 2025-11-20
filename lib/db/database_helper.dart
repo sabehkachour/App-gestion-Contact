@@ -1,51 +1,102 @@
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:path/path.dart';
 
 class DatabaseHelper {
-  static Database? _db;
+  static DatabaseHelper? _instance;
+  late Database _db;
 
-  DatabaseHelper() {
+  factory DatabaseHelper() => _instance ??= DatabaseHelper._internal();
+  DatabaseHelper._internal();
+
+  Future<void> initDb() async {
     sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi; // initialisation pour Windows
-  }
+    var databasesPath = await databaseFactoryFfi.getDatabasesPath();
+    String path = join(databasesPath, 'contacts.db');
 
-  Future<Database> get db async {
-    if (_db != null) return _db!;
-    _db = await _initDb();
-    return _db!;
-  }
-
-  Future<Database> _initDb() async {
-    final path = await databaseFactory.getDatabasesPath() + '/contact.db';
-    return await databaseFactory.openDatabase(path,
+    _db = await databaseFactoryFfi.openDatabase(path,
         options: OpenDatabaseOptions(
           version: 1,
           onCreate: (db, version) async {
+            // Table users
             await db.execute('''
-              CREATE TABLE users(
+              CREATE TABLE IF NOT EXISTS users(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT,
+                password TEXT,
+                email TEXT
+              )
+            ''');
+            // Table contacts avec structure simple
+            await db.execute('''
+              CREATE TABLE IF NOT EXISTS contacts(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT,
-                email TEXT UNIQUE,
-                phone TEXT
+                phone TEXT,
+                email TEXT
               )
             ''');
           },
         ));
   }
 
-  Future<bool> userExists(String email) async {
-    final database = await db;
-    final res =
-        await database.rawQuery('SELECT * FROM users WHERE email = ?', [email]);
-    return res.isNotEmpty;
+  Future<Map<String, dynamic>?> getUser(String username, String password) async {
+    try {
+      final results = await _db.query(
+        'users',
+        where: 'username = ? AND password = ?',
+        whereArgs: [username, password],
+      );
+      if (results.isNotEmpty) return results.first;
+      return null;
+    } catch (e) {
+      print('Error getting user: $e');
+      return null;
+    }
   }
 
-  Future<void> insertUser(Map<String, dynamic> user) async {
-    final database = await db;
-    await database.insert('users', user);
+  Future<int> insertUser(Map<String, dynamic> user) async {
+    try {
+      return await _db.insert('users', user);
+    } catch (e) {
+      print('Error inserting user: $e');
+      return -1;
+    }
   }
 
-  Future<List<Map<String, dynamic>>> getUsers() async {
-    final database = await db;
-    return database.query('users');
+  Future<List<Map<String, dynamic>>> getContacts() async {
+    try {
+      return await _db.query('contacts', orderBy: 'name ASC');
+    } catch (e) {
+      print('Error getting contacts: $e');
+      return [];
+    }
+  }
+
+  Future<int> insertContact(Map<String, dynamic> contact) async {
+    try {
+      return await _db.insert('contacts', contact);
+    } catch (e) {
+      print('Error inserting contact: $e');
+      return -1;
+    }
+  }
+
+  Future<int> updateContact(Map<String, dynamic> contact) async {
+    try {
+      return await _db.update('contacts', contact,
+          where: 'id = ?', whereArgs: [contact['id']]);
+    } catch (e) {
+      print('Error updating contact: $e');
+      return -1;
+    }
+  }
+
+  Future<int> deleteContact(int id) async {
+    try {
+      return await _db.delete('contacts', where: 'id = ?', whereArgs: [id]);
+    } catch (e) {
+      print('Error deleting contact: $e');
+      return -1;
+    }
   }
 }
