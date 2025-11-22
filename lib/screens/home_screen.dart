@@ -21,10 +21,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadContacts() async {
-    setState(() {
-      _isLoading = true;
-    });
-    
+    setState(() => _isLoading = true);
+
     try {
       final data = await db.getContacts();
       setState(() {
@@ -32,9 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
       _showErrorSnackBar("Erreur lors du chargement des contacts");
     }
   }
@@ -43,7 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       await db.deleteContact(id);
       await _loadContacts();
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -55,13 +51,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
-          action: SnackBarAction(
-            label: "Annuler",
-            textColor: Colors.white,
-            onPressed: () {
-           
-            },
-          ),
         ),
       );
     } catch (e) {
@@ -89,6 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Row(
           children: [
             Icon(Icons.warning_amber, color: Colors.orange),
@@ -112,26 +102,23 @@ class _HomeScreenState extends State<HomeScreen> {
             SizedBox(height: 4),
             Text(
               "Cette action est irréversible.",
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              "Annuler",
-              style: TextStyle(color: Colors.grey[600]),
-            ),
+            child: Text("Annuler", style: TextStyle(color: Colors.grey[600])),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: Text("Supprimer"),
           ),
@@ -139,9 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
-    if (confirmed == true) {
-      _deleteContact(id, contactName);
-    }
+    if (confirmed == true) _deleteContact(id, contactName);
   }
 
   @override
@@ -150,10 +135,9 @@ class _HomeScreenState extends State<HomeScreen> {
       final name = contact['name'].toString().toLowerCase();
       final phone = contact['phone'].toString().toLowerCase();
       final email = contact['email'].toString().toLowerCase();
-      
-      return name.contains(searchQuery) || 
-             phone.contains(searchQuery) || 
-             email.contains(searchQuery);
+      return name.contains(searchQuery) ||
+          phone.contains(searchQuery) ||
+          email.contains(searchQuery);
     }).toList();
 
     return Scaffold(
@@ -161,13 +145,9 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Text(
           "Mes Contacts",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         backgroundColor: Colors.teal[700],
-        foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
@@ -179,7 +159,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
-          
+          // ===== SEARCH BAR =====
           Container(
             padding: EdgeInsets.all(16),
             color: Colors.white,
@@ -188,6 +168,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: Colors.grey[50],
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.grey[300]!),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
               child: TextField(
                 controller: searchCtrl,
@@ -195,18 +182,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   hintText: "Rechercher un contact...",
                   prefixIcon: Icon(Icons.search, color: Colors.teal[600]),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
-                onChanged: (value) {
-                  setState(() {
-                    searchQuery = value.toLowerCase();
-                  });
-                },
+                onChanged: (value) => setState(() {
+                  searchQuery = value.toLowerCase();
+                }),
               ),
             ),
           ),
 
-         
+          // ===== SEARCH INFO =====
           if (searchQuery.isNotEmpty)
             Container(
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -224,91 +209,63 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   Spacer(),
-                  if (searchQuery.isNotEmpty)
-                    TextButton(
-                      onPressed: () {
-                        searchCtrl.clear();
-                        setState(() {
-                          searchQuery = "";
-                        });
-                      },
-                      child: Text(
-                        "Effacer",
-                        style: TextStyle(
-                          color: Colors.teal[700],
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
+                  TextButton(
+                    onPressed: () {
+                      searchCtrl.clear();
+                      setState(() => searchQuery = "");
+                    },
+                    child: Text("Effacer", style: TextStyle(color: Colors.teal[700], fontSize: 12)),
+                  ),
                 ],
               ),
             ),
 
-          
+          // ===== CONTACT LIST =====
           Expanded(
             child: _isLoading
                 ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.teal),
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          "Chargement des contacts...",
-                          style: TextStyle(
-                            color: Colors.teal,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.teal)),
+                  SizedBox(height: 16),
+                  Text(
+                    "Chargement des contacts...",
+                    style: TextStyle(color: Colors.teal, fontSize: 16),
+                  ),
+                ],
+              ),
+            )
                 : filteredContacts.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              searchQuery.isEmpty 
-                                  ? Icons.contacts_outlined 
-                                  : Icons.search_off,
-                              size: 80,
-                              color: Colors.grey[400],
-                            ),
-                            SizedBox(height: 16),
-                            Text(
-                              searchQuery.isEmpty
-                                  ? "Aucun contact"
-                                  : "Aucun contact trouvé",
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              searchQuery.isEmpty
-                                  ? "Appuyez sur le bouton + pour ajouter un contact"
-                                  : "Essayez avec d'autres termes de recherche",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Colors.grey[500],
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: filteredContacts.length,
-                        itemBuilder: (context, index) {
-                          final contact = filteredContacts[index];
-                          
-                          return _buildContactCard(contact);
-                        },
-                      ),
+                ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    searchQuery.isEmpty ? Icons.contacts_outlined : Icons.search_off,
+                    size: 80,
+                    color: Colors.grey[400],
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    searchQuery.isEmpty ? "Aucun contact" : "Aucun contact trouvé",
+                    style: TextStyle(fontSize: 18, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    searchQuery.isEmpty
+                        ? "Appuyez sur le bouton + pour ajouter un contact"
+                        : "Essayez avec d'autres termes de recherche",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey[500]),
+                  ),
+                ],
+              ),
+            )
+                : ListView.builder(
+              itemCount: filteredContacts.length,
+              itemBuilder: (context, index) => _buildContactCard(filteredContacts[index]),
+            ),
           ),
         ],
       ),
@@ -318,14 +275,11 @@ class _HomeScreenState extends State<HomeScreen> {
             context,
             MaterialPageRoute(builder: (_) => AddContactScreen()),
           );
-          if (result == true) {
-            _loadContacts();
-          }
+          if (result == true) _loadContacts();
         },
         backgroundColor: Colors.teal[700],
-        foregroundColor: Colors.white,
         child: Icon(Icons.add),
-        elevation: 2,
+        elevation: 4,
       ),
     );
   }
@@ -333,33 +287,15 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildContactCard(Map<String, dynamic> contact) {
     return Card(
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 2,
       child: ListTile(
         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: Colors.teal[100],
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            Icons.person,
-            color: Colors.teal[700],
-            size: 24,
-          ),
+        leading: CircleAvatar(
+          backgroundColor: Colors.teal[100],
+          child: Icon(Icons.person, color: Colors.teal[700]),
         ),
-        title: Text(
-          contact['name'],
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-            color: Colors.grey[800],
-          ),
-        ),
+        title: Text(contact['name'], style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey[800])),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -368,23 +304,15 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Icon(Icons.phone, size: 14, color: Colors.grey[600]),
                 SizedBox(width: 4),
-                Text(
-                  contact['phone'],
-                  style: TextStyle(color: Colors.grey[600]),
-                ),
+                Text(contact['phone'], style: TextStyle(color: Colors.grey[600])),
               ],
             ),
-            SizedBox(height: 2),
             Row(
               children: [
                 Icon(Icons.email, size: 14, color: Colors.grey[600]),
                 SizedBox(width: 4),
                 Expanded(
-                  child: Text(
-                    contact['email'],
-                    style: TextStyle(color: Colors.grey[600]),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  child: Text(contact['email'], style: TextStyle(color: Colors.grey[600]), overflow: TextOverflow.ellipsis),
                 ),
               ],
             ),
@@ -393,33 +321,21 @@ class _HomeScreenState extends State<HomeScreen> {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            
             IconButton(
               icon: Icon(Icons.edit, size: 20),
               color: Colors.blue[600],
               onPressed: () async {
                 final result = await Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => AddContactScreen(contactData: contact),
-                  ),
+                  MaterialPageRoute(builder: (_) => AddContactScreen(contactData: contact)),
                 );
-                if (result == true) {
-                  _loadContacts();
-                }
+                if (result == true) _loadContacts();
               },
-              tooltip: "Modifier",
             ),
-            
-            
             IconButton(
               icon: Icon(Icons.delete, size: 20),
               color: Colors.red[600],
-              onPressed: () => _confirmDelete(
-                contact['id'], 
-                contact['name']
-              ),
-              tooltip: "Supprimer",
+              onPressed: () => _confirmDelete(contact['id'], contact['name']),
             ),
           ],
         ),
